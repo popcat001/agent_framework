@@ -16,7 +16,7 @@ from agent.constants import USER_MEMORY_MAX_PER_USER
 from agent.memory import PreloadedUserMemoryProvider
 from agent_acl import can_user_access
 from agent_registry import default_agent_id, get_agent_config
-from agent_wrapper import CHAT_HISTORY_ENABLED, USER_MEMORY_ENABLED, StreamingAgentWrapper
+from agent_wrapper import CHAT_HISTORY_ENABLED, MULTI_AGENT_ENABLED, USER_MEMORY_ENABLED, StreamingAgentWrapper
 from auth import get_user_from_ws_token
 from database import async_session
 from models import WebConversation, WebMessage, WebUserMemory
@@ -242,13 +242,13 @@ async def _handle_user_message(
                 # agent_id is NOT NULL — bail out if the registry can't supply one.
                 title = content[:100] + ("..." if len(content) > 100 else "")
                 resolved_agent = _resolve_or_default(data.get("agent_id"))
-                if resolved_agent is None:
+                if resolved_agent is None and MULTI_AGENT_ENABLED:
                     await _send(websocket, {
                         "type": "error",
                         "message": "No agents are registered on this server.",
                     })
                     return
-                if not await can_user_access(db, user.email, resolved_agent):
+                if resolved_agent is not None and not await can_user_access(db, user.email, resolved_agent):
                     await _send(websocket, {
                         "type": "error",
                         "code": "agent_access_denied",
@@ -277,13 +277,13 @@ async def _handle_user_message(
             # Access is still enforced on the first turn of a new conversation.
             if not conversation_id:
                 resolved_agent = _resolve_or_default(data.get("agent_id"))
-                if resolved_agent is None:
+                if resolved_agent is None and MULTI_AGENT_ENABLED:
                     await _send(websocket, {
                         "type": "error",
                         "message": "No agents are registered on this server.",
                     })
                     return
-                if not await can_user_access(db, user.email, resolved_agent):
+                if resolved_agent is not None and not await can_user_access(db, user.email, resolved_agent):
                     await _send(websocket, {
                         "type": "error",
                         "code": "agent_access_denied",

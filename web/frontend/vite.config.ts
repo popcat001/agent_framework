@@ -20,6 +20,18 @@ const parentRoot = process.env.VITE_PROJECT_ROOT
   ? path.resolve(process.env.VITE_PROJECT_ROOT)
   : path.resolve(__dirname, "../../..");
 
+// Read BACKEND_PORT from project .env (process.env doesn't include .env files)
+function readBackendPort(): number {
+  const envPath = path.join(parentRoot, ".env");
+  try {
+    const content = fs.readFileSync(envPath, "utf8");
+    const match = content.match(/^BACKEND_PORT\s*=\s*(\d+)/m);
+    if (match) return parseInt(match[1], 10);
+  } catch {}
+  return 8000;
+}
+const backendPort = readBackendPort();
+
 const parentConfigPath = path.join(parentRoot, "web", "project-config.ts");
 const parentPagesPath = path.join(parentRoot, "web", "pages", "index.ts");
 const parentPublicDir = path.join(parentRoot, "web", "public");
@@ -60,12 +72,12 @@ export default defineConfig({
       allow: [path.resolve(__dirname), parentRoot],
     },
     proxy: {
-      "/api": "http://localhost:8000",
+      "/api": `http://localhost:${backendPort}`,
       "/ws": {
-        target: "ws://localhost:8000",
+        target: `ws://localhost:${backendPort}`,
         ws: true,
       },
-      "/files": "http://localhost:8000",
+      "/files": `http://localhost:${backendPort}`,
     },
   },
 });

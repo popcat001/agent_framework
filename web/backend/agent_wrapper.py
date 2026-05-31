@@ -68,6 +68,15 @@ USER_MEMORY_ENABLED = _env_flag("USER_MEMORY_ENABLED", default=True)
 CHAT_HISTORY_ENABLED = _env_flag("CHAT_HISTORY_ENABLED", default=True)
 
 
+# Kill-switch for multi-agent support. When ``MULTI_AGENT_ENABLED=false``:
+#   - The agents/ registry is ignored; every conversation runs on framework
+#     defaults (single agent, no per-agent system prompt or skill/tool dirs).
+#   - ACL checks are skipped — no DB round-trips to web_agent_access.
+#   - The agents/ directory may be absent with no errors.
+# Default is ``True`` so existing multi-agent deployments are unaffected.
+MULTI_AGENT_ENABLED = _env_flag("MULTI_AGENT_ENABLED", default=True)
+
+
 # ---------------------------------------------------------------------------
 # User-memory tool schemas (web only — NOT in framework/agent/tools.py)
 # ---------------------------------------------------------------------------

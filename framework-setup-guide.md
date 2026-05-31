@@ -75,9 +75,11 @@ APP_NAME=my_project
 DEV_MODE=true               # bypasses Azure AD auth
 CHAT_HISTORY_ENABLED=false  # no PostgreSQL needed when false
 USER_MEMORY_ENABLED=false   # no PostgreSQL needed when false
+MULTI_AGENT_ENABLED=false   # no agents/ directory needed when false
+BACKEND_PORT=8000            # Vite proxy target (default 8000)
 ```
 
-With all three flags set as above, **no database is required**.
+With `DEV_MODE`, `CHAT_HISTORY_ENABLED`, `USER_MEMORY_ENABLED`, and `MULTI_AGENT_ENABLED` all set as above, **no database or agents directory is required**.
 
 ---
 
@@ -150,14 +152,16 @@ PYTHONPATH=framework uv run --project framework framework/agent/app.py
 **Web UI backend:**
 ```bash
 PYTHONPATH=framework uv run --project framework uvicorn main:app \
-  --reload --reload-dir framework/web/backend --port 8000 \
+  --reload --reload-dir framework/web/backend --port 8001 \
   --app-dir framework/web/backend
 ```
+
+> Set `BACKEND_PORT=8001` in `.env` so the Vite proxy follows.
 
 **Web UI frontend** (separate terminal):
 ```bash
 npm install --prefix framework/web/frontend   # first time only
-npm run dev --prefix framework/web/frontend   # → http://localhost:5173
+VITE_DEV_MODE=true npm run dev --prefix framework/web/frontend   # → http://localhost:5173
 ```
 
 ---
@@ -198,4 +202,6 @@ Place SVG/PNG files in `web/public/`. Icons are [Lucide](https://lucide.dev/icon
 | `Extra 'web' is not defined` | Use `uv sync`, not `uv sync --extra web` |
 | `No module named 'greenlet'` | Add `greenlet>=3.0.0` and `sqlalchemy[asyncio]` to pyproject.toml |
 | `[Errno 61] Connection refused` | Set `CHAT_HISTORY_ENABLED=false` and `USER_MEMORY_ENABLED=false` |
+| `No agents are registered on this server` | Set `MULTI_AGENT_ENABLED=false` or create an `agents/` directory |
+| UI stuck on "Thinking…" | Check `BACKEND_PORT` in `.env` matches the port uvicorn is running on; kill any stale Vite servers on port 5173 |
 | Skills/tools not loading | Run from project root, not from inside `framework/` |
