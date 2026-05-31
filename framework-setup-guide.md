@@ -20,25 +20,9 @@ git clone <framework-repo-url> framework
 
 ## 2. Add web dependencies
 
-Open `framework/pyproject.toml` and add to `dependencies`:
-
-```toml
-"fastapi>=0.115.0",
-"uvicorn[standard]>=0.30.0",
-"sqlalchemy[asyncio]>=2.0.0",
-"asyncpg>=0.29.0",
-"psycopg2-binary>=2.9.0",
-"greenlet>=3.0.0",
-"httpx>=0.27.0",
-"pydantic>=2.0.0",
-"python-multipart>=0.0.9",
-```
-
 ```bash
 cd framework && uv sync && cd ..
 ```
-
-> Use plain `uv sync` — never `uv sync --extra web` (the extra doesn't exist).
 
 ---
 
