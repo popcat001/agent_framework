@@ -8,6 +8,7 @@ Ref: https://github.com/shareAI-lab/learn-claude-code
 
 ## Recent Updates
 
+- **2026-05-31 — `MULTI_AGENT_ENABLED` kill-switch + configurable backend port.** Setting `MULTI_AGENT_ENABLED=false` bypasses the agents registry and per-agent ACL checks, so the server runs on framework defaults with no `agents/` directory required. `BACKEND_PORT` in `.env` is now read directly by `vite.config.ts` so the Vite proxy follows the backend port without a shell env var.
 - **2026-05-28 — Reliability + security hardening.** WebSocket stop/disconnect now propagates a `cancel_event` into `Agent.run` (`AgentCancelled`) so abandoned runs stop instead of streaming into a dead socket; streaming switched from shared-list polling to an `asyncio.Queue` with coalesced text deltas; tool events carry `tool_use_id` so parallel same-named calls resolve independently; the `/files` route is path-traversal-checked; expired sessions surface a refresh modal (WS close + REST 401 share one signal). The `task`/subagent system was removed — the agent is a single tool tier.
 - **2026-05-15 — Per-agent access control + Admin UI.** DB-backed 2-tier access control (L1 super-admin via env var, L2 agent-admin via `web_agent_admins` table). Unprovisioned users fall back to a configured default agent. `enabled` flag in `agent.yaml` hides agents from the sidebar without deleting files. Admin UI for managing grants shipped 2026-05-18.
 - **2026-05-07 — Multi-agent architecture.** `SkillLoader`, `ToolLoader`, and `Agent` now accept a list of directories, so each agent layers its own skills/tools/system-prompt on top of the shared set. Powers the AGENTS sidebar in the web UI; tool-name collisions across dirs raise `ToolCollisionError` at startup.
@@ -86,7 +87,7 @@ When the LLM requests multiple tool calls in a single turn, they execute concurr
 Per-user persistent memory — preferences, facts, and feedback the agent saves across conversations. Three tools the agent can call: `remember_user` (save or refresh), `recall_user` (fetch older entries beyond the always-visible top-15), `forget_user` (delete by id or fuzzy match). Registered only by the web wrapper via `extra_tools` / `extra_handlers` kwargs on `Agent()` — the REPL never advertises them, so its request shape stays byte-identical to pre-feature. The system prompt is split into a cached prefix and an uncached per-turn suffix so memory churn only invalidates the short tail. Stored in a `web_user_memory` Postgres table; per-user cap of 500 rows with eviction at flush. Kill-switch: `USER_MEMORY_ENABLED=false` disables the feature entirely without touching stored data.
 
 ### 9. Per-Agent Access Control (Web UI only)
-DB-backed restrictions for who can see and use each agent. **Unprovisioned users (zero rows in `web_agent_access`) see only the configured default agent;** provisioned users get per-agent rules (every agent requires an explicit grant row — no public fallthrough).
+DB-backed restrictions for who can see and use each agent. **Unprovisioned users (zero rows in `web_agent_access`) see only the configured default agent;** provisioned users get per-agent rules (every agent requires an explicit grant row — no public fallthrough). Kill-switch: `MULTI_AGENT_ENABLED=false` disables the agents registry and all ACL checks — the server runs on framework defaults with no `agents/` directory required.
 
 **What users experience.** Restricted agents are hidden from the sidebar (`GET /api/agents` filters server-side). Denied API calls return `403`. Old conversations remain accessible after revoke — v1 only gates new conversation starts (retroactive cutoff is a deferred followup, see `plans/plan_agent_access_control_db.md`).
 
@@ -199,7 +200,7 @@ PYTHONPATH=framework/web/backend:framework uv run uvicorn main:app \
 npm run dev --prefix framework/web/frontend   # http://localhost:5173
 ```
 
-Set `DEV_MODE=true` and `VITE_DEV_MODE=true` in `.env` to bypass Azure AD SSO during development.
+Set `DEV_MODE=true` in `.env` to bypass Azure AD SSO during development. Set `MULTI_AGENT_ENABLED=false` to skip the agents registry (no `agents/` directory needed). Set `BACKEND_PORT` in `.env` to control which port the Vite proxy targets (default `8000`).
 
 ### Project Customization
 
