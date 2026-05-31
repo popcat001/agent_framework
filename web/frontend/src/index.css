@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+/* Also scan the parent project's pages (web/pages/**), which live above the
+   Vite root and so aren't picked up by Tailwind's default content scan. Without
+   this, utility classes used only in project pages aren't generated. Harmless
+   when running standalone (the path simply matches no files). */
+@source "../../../../web/pages";
+
+:root {
+  --bg-primary: #faf8f5;
+  --bg-sidebar: #f5f0eb;
+  --bg-input: #ffffff;
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b6b6b;
+  --accent: #e07a3a;
+  --accent-hover: #c96a2e;
+  --border: #e8e2db;
+}
+
+body {
+  margin: 0;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Blinking cursor for streaming */
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+.streaming-cursor::after {
+  content: "▊";
+  animation: blink 1s step-end infinite;
+  color: var(--accent);
+  margin-left: 2px;
+}
+
+/* Spinning animation for tool indicator */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Prose typography for assistant messages */
+.prose {
+  line-height: 1.65;
+}
+.prose p {
+  margin-bottom: 0.75em;
+}
+.prose p:last-child {
+  margin-bottom: 0;
+}
+.prose h1,
+.prose h2,
+.prose h3 {
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 1.25em;
+  margin-bottom: 0.5em;
+}
+.prose h1:first-child,
+.prose h2:first-child,
+.prose h3:first-child {
+  margin-top: 0;
+}
+.prose h1 {
+  font-size: 1.25em;
+}
+.prose h2 {
+  font-size: 1.125em;
+}
+.prose h3 {
+  font-size: 1em;
+}
+.prose ul,
+.prose ol {
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+.prose ul {
+  list-style-type: disc;
+}
+.prose ol {
+  list-style-type: decimal;
+}
+.prose li {
+  margin-bottom: 0.25em;
+}
+.prose li:last-child {
+  margin-bottom: 0;
+}
+.prose blockquote {
+  border-left: 3px solid var(--border);
+  padding-left: 1em;
+  margin: 0.75em 0;
+  color: var(--text-secondary);
+}
+.prose hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1em 0;
+}
+.prose strong {
+  font-weight: 600;
+}
+.prose-sm {
+  font-size: 0.875rem;
+}

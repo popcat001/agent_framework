@@ -1,0 +1,29 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Claude Code
+.chat
+.claude
+
+# Node
+node_modules/
+.playwright-cli
+
+# TypeScript incremental build cache (local, per-machine)
+*.tsbuildinfo
+
+# Environment variables
+.env
+
+slides.html
+
+
+
