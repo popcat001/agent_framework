@@ -2,6 +2,7 @@ import type { WSEvent } from "../types";
 
 type EventHandler = (event: WSEvent) => void;
 type AuthFailureHandler = () => void;
+type OutboundMessage = { type: string; conversation_id?: string | null; content?: string; agent_id?: string | null };
 
 export class ChatWebSocket {
   private ws: WebSocket | null = null;
@@ -10,6 +11,11 @@ export class ChatWebSocket {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private stopped = false;
+  // Messages enqueued while the socket is still CONNECTING. Connecting is
+  // async (a pre-flight auth probe runs before the WS is even constructed),
+  // so a fast first send can arrive before `onopen`. Buffer here and flush in
+  // `onopen` rather than dropping the message on the floor.
+  private pendingSends: OutboundMessage[] = [];
 
   constructor(onEvent: EventHandler, onAuthFailure?: AuthFailureHandler) {
     this.onEvent = onEvent;
@@ -80,6 +86,10 @@ export class ChatWebSocket {
     this.ws.onopen = () => {
       this.reconnectAttempts = 0;
       console.log("[WS] connected, url=" + this.ws?.url);
+      // Flush anything queued while we were CONNECTING, in order.
+      const queued = this.pendingSends;
+      this.pendingSends = [];
+      for (const msg of queued) this.send(msg);
     };
 
     this.ws.onmessage = (event) => {
@@ -127,18 +137,27 @@ export class ChatWebSocket {
     };
   }
 
-  send(data: { type: string; conversation_id?: string | null; content?: string; agent_id?: string | null }) {
+  send(data: OutboundMessage) {
     if (this.ws?.readyState === WebSocket.OPEN) {
       console.log("[WS send]", data.type, data.content?.substring(0, 50));
       this.ws.send(JSON.stringify(data));
-    } else {
-      console.warn("[WS send] not connected, readyState=", this.ws?.readyState);
+      return;
     }
+    // Not open yet. If we're still connecting (or between reconnect attempts),
+    // queue the message so it goes out on the next `onopen` instead of being
+    // silently dropped. Once stopped, there's nothing to flush to.
+    if (this.stopped) {
+      console.warn("[WS send] socket stopped, dropping", data.type);
+      return;
+    }
+    console.log("[WS send] queued (socket not open), readyState=", this.ws?.readyState);
+    this.pendingSends.push(data);
   }
 
   disconnect() {
     console.log("[WS] disconnect called");
     this.stopped = true;
+    this.pendingSends = [];
     this.ws?.close(1000);
     this.ws = null;
   }

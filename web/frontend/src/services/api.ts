@@ -82,12 +82,13 @@ class ApiClient {
     conversationId: string,
     messageId: string,
     rating: "up" | "down" | null,
-  ): Promise<{ id: string; feedback: string | null }> {
+    comment?: string | null,
+  ): Promise<{ id: string; feedback: string | null; feedback_comment: string | null }> {
     return this.request(
       `/api/conversations/${conversationId}/messages/${messageId}/feedback`,
       {
         method: "PATCH",
-        body: JSON.stringify({ rating }),
+        body: JSON.stringify({ rating, comment: comment ?? null }),
       },
     );
   }

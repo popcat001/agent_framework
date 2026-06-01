@@ -27,6 +27,7 @@ export interface Message {
   content: MessageContent;
   created_at: string;
   feedback?: "up" | "down" | null;
+  feedback_comment?: string | null;
 }
 
 export interface MessageContent {
@@ -102,4 +103,5 @@ export interface ChatMessage {
   // Required for feedback PATCH calls.
   dbId?: string;
   feedback?: "up" | "down" | null;
+  feedbackComment?: string | null;
 }

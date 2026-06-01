@@ -4,13 +4,14 @@ import remarkGfm from "remark-gfm";
 import { Download, Copy, Check, ThumbsUp, ThumbsDown } from "lucide-react";
 import { ToolIndicator } from "./ToolIndicator";
 import { ChartFrame } from "./ChartFrame";
+import { FeedbackDialog } from "./FeedbackDialog";
 import { project } from "../config/project";
 import { TodoPanel } from "./TodoPanel";
 import type { ChatMessage } from "../types";
 
 interface MessageBubbleProps {
   message: ChatMessage;
-  onFeedback?: (dbId: string, rating: "up" | "down" | null) => void;
+  onFeedback?: (dbId: string, rating: "up" | "down" | null, comment?: string | null) => void;
 }
 
 // Extract tmp/*.html references from text and convert to /files/ URLs
@@ -24,6 +25,9 @@ export function MessageBubble({ message, onFeedback }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const [copied, setCopied] = useState(false);
   const feedback = message.feedback ?? null;
+  // Which rating's comment popup is open (null = closed), plus its draft text.
+  const [popupFor, setPopupFor] = useState<"up" | "down" | null>(null);
+  const [commentDraft, setCommentDraft] = useState("");
 
   const handleCopy = useCallback(() => {
     if (!message.text) return;
@@ -33,9 +37,25 @@ export function MessageBubble({ message, onFeedback }: MessageBubbleProps) {
     });
   }, [message.text]);
 
-  const toggleFeedback = (rating: "up" | "down") => {
+  const handleThumb = (rating: "up" | "down") => {
     if (!message.dbId || !onFeedback) return;
-    onFeedback(message.dbId, feedback === rating ? null : rating);
+    if (feedback === rating) {
+      // Clicking the active rating again clears it (and its comment).
+      setPopupFor(null);
+      onFeedback(message.dbId, null, null);
+      return;
+    }
+    // Record the rating immediately so it sticks even if the popup is
+    // dismissed without submitting a comment, then open the comment popup.
+    onFeedback(message.dbId, rating, message.feedbackComment ?? null);
+    setCommentDraft(message.feedbackComment ?? "");
+    setPopupFor(rating);
+  };
+
+  const submitComment = () => {
+    if (!message.dbId || !onFeedback || !popupFor) return;
+    onFeedback(message.dbId, popupFor, commentDraft.trim() || null);
+    setPopupFor(null);
   };
 
   const toolCharts = message.tools?.filter((t) => t.chart_url).map((t) => t.chart_url!) || [];
@@ -225,7 +245,7 @@ export function MessageBubble({ message, onFeedback }: MessageBubbleProps) {
               {copied ? <Check size={14} /> : <Copy size={14} />}
             </button>
             <button
-              onClick={() => toggleFeedback("up")}
+              onClick={() => handleThumb("up")}
               className="p-1.5 rounded-md transition-colors hover:bg-[var(--border)] cursor-pointer"
               title="Good response"
               style={{ color: feedback === "up" ? "var(--accent)" : "var(--text-secondary)" }}
@@ -233,14 +253,32 @@ export function MessageBubble({ message, onFeedback }: MessageBubbleProps) {
               <ThumbsUp size={14} fill={feedback === "up" ? "currentColor" : "none"} />
             </button>
             <button
-              onClick={() => toggleFeedback("down")}
+              onClick={() => handleThumb("down")}
               className="p-1.5 rounded-md transition-colors hover:bg-[var(--border)] cursor-pointer"
               title="Bad response"
               style={{ color: feedback === "down" ? "var(--accent)" : "var(--text-secondary)" }}
             >
               <ThumbsDown size={14} fill={feedback === "down" ? "currentColor" : "none"} />
             </button>
+            {message.feedbackComment && popupFor === null && (
+              <span className="ml-1 text-xs italic" style={{ color: "var(--text-secondary)" }}>
+                comment saved
+              </span>
+            )}
           </div>
+        )}
+
+        {/* Feedback comment dialog — centered modal, opened after a thumb
+            click. Rendered at the bubble root but positioned fixed so it
+            floats above the conversation. */}
+        {popupFor && (
+          <FeedbackDialog
+            rating={popupFor}
+            value={commentDraft}
+            onChange={setCommentDraft}
+            onCancel={() => setPopupFor(null)}
+            onSubmit={submitComment}
+          />
         )}
       </div>
     </div>

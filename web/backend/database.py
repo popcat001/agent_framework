@@ -145,8 +145,10 @@ async def init_db():
         except Exception as e:
             logger.warning("Failed to ensure source column: %s", e)
 
-        # Add per-message feedback column. Nullable; 'up' / 'down' / NULL.
-        # Only assistant rows the user has rated will have values.
+        # Add per-message feedback columns. Nullable; feedback is
+        # 'up' / 'down' / NULL, feedback_comment is an optional free-text
+        # note the user can attach to either rating. Only assistant rows the
+        # user has rated will have values.
         try:
             from sqlalchemy import text
             async with engine.begin() as conn:
@@ -155,17 +157,13 @@ async def init_db():
                         "ALTER TABLE web_messages "
                         "ADD COLUMN IF NOT EXISTS feedback VARCHAR(10)"
                     ))
-                # Drop the orphaned `feedback_comment` column left behind by an
-                # earlier iteration. Only attempt the DROP when it's actually
-                # present — like ADD, DROP requires ownership even with IF
-                # EXISTS, so guarding it avoids a spurious privilege warning.
-                if await _column_exists(conn, "web_messages", "feedback_comment"):
+                if not await _column_exists(conn, "web_messages", "feedback_comment"):
                     await conn.execute(text(
                         "ALTER TABLE web_messages "
-                        "DROP COLUMN IF EXISTS feedback_comment"
+                        "ADD COLUMN IF NOT EXISTS feedback_comment TEXT"
                     ))
         except Exception as e:
-            logger.warning("Failed to ensure feedback column: %s", e)
+            logger.warning("Failed to ensure feedback columns: %s", e)
 
         # Prune old report charts (360 days). Chat charts now live on disk under tmp/
         # and are pruned by a separate filesystem sweep in main.py:lifespan().

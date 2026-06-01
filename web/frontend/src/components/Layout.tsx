@@ -64,6 +64,7 @@ export function Layout() {
         })),
         dbId: m.id,
         feedback: (m.feedback as "up" | "down" | null | undefined) ?? null,
+        feedbackComment: m.feedback_comment ?? null,
       }));
       setMessages(loaded);
     } catch (err) {
@@ -98,26 +99,35 @@ export function Layout() {
   // network jitter.
   const feedbackQueue = useRef<Map<string, Promise<unknown>>>(new Map());
 
-  const handleFeedback = (dbId: string, rating: "up" | "down" | null) => {
+  const handleFeedback = (
+    dbId: string,
+    rating: "up" | "down" | null,
+    comment?: string | null,
+  ) => {
     const convId = activeConversation?.id ?? lastConversationId;
     if (!convId) return;
 
-    // Capture the prior rating for *this message only* so rollback on
-    // failure can't resurrect a stale conversation. Functional update +
+    // Capture the prior rating + comment for *this message only* so rollback
+    // on failure can't resurrect a stale conversation. Functional update +
     // targeted map means it's a no-op if the user has since navigated.
+    const newComment = rating ? comment ?? null : null;
     let prevFeedback: "up" | "down" | null = null;
+    let prevComment: string | null = null;
     setMessages((prev) => {
       const target = prev.find((m) => m.dbId === dbId);
-      if (target) prevFeedback = target.feedback ?? null;
+      if (target) {
+        prevFeedback = target.feedback ?? null;
+        prevComment = target.feedbackComment ?? null;
+      }
       return prev.map((m) =>
-        m.dbId === dbId ? { ...m, feedback: rating } : m,
+        m.dbId === dbId ? { ...m, feedback: rating, feedbackComment: newComment } : m,
       );
     });
 
     const prevInFlight = feedbackQueue.current.get(dbId) ?? Promise.resolve();
     const next = prevInFlight
       .catch(() => {}) // a failed earlier PATCH must not block later ones
-      .then(() => api.setMessageFeedback(convId, dbId, rating));
+      .then(() => api.setMessageFeedback(convId, dbId, rating, comment));
     feedbackQueue.current.set(dbId, next);
     next.catch((err) => {
       console.error("Failed to save feedback:", err);
@@ -127,7 +137,7 @@ export function Layout() {
       if (feedbackQueue.current.get(dbId) !== next) return;
       setMessages((prev) =>
         prev.map((m) =>
-          m.dbId === dbId ? { ...m, feedback: prevFeedback } : m,
+          m.dbId === dbId ? { ...m, feedback: prevFeedback, feedbackComment: prevComment } : m,
         ),
       );
     });

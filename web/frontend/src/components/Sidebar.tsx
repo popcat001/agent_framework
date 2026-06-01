@@ -6,6 +6,7 @@ import { useAdmin } from "../hooks/useAdmin";
 import { api } from "../services/api";
 import { project } from "../config/project";
 import { ConversationList } from "./ConversationList";
+import { ResizableSidebar } from "./ResizableSidebar";
 import type { AgentInfo, Conversation } from "../types";
 
 /** Resolve a Lucide icon by its string name (from agent.yaml `icon` field).
@@ -77,8 +78,9 @@ export function Sidebar({
   };
 
   return (
+    <ResizableSidebar storageKey="sidebar-width:chat">
     <div
-      className="w-72 flex flex-col h-full border-r"
+      className="w-full flex flex-col h-full border-r"
       style={{ background: "var(--bg-sidebar)", borderColor: "var(--border)" }}
     >
       {/* Xi Logo - top left */}
@@ -304,5 +306,6 @@ export function Sidebar({
         </div>
       </div>
     </div>
+    </ResizableSidebar>
   );
 }

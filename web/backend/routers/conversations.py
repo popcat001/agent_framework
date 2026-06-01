@@ -41,12 +41,14 @@ class MessageOut(BaseModel):
     content: dict
     created_at: str
     feedback: str | None = None
+    feedback_comment: str | None = None
 
     model_config = {"from_attributes": True}
 
 
 class FeedbackRequest(BaseModel):
     rating: str | None  # 'up' | 'down' | None to clear
+    comment: str | None = None  # optional free-text note for either rating
 
 
 class ConversationDetail(BaseModel):
@@ -131,6 +133,7 @@ async def get_conversation(
                 content=m.content,
                 created_at=m.created_at.isoformat(),
                 feedback=m.feedback,
+                feedback_comment=m.feedback_comment,
             )
             for m in conversation.messages
         ],
@@ -234,10 +237,12 @@ async def set_message_feedback(
     user: WebUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Set or clear the feedback rating on an assistant message.
+    """Set or clear the feedback rating + optional comment on an assistant message.
 
     Owner-only: the message must belong to a conversation owned by ``user``.
-    ``rating`` must be 'up', 'down', or None (to clear).
+    ``rating`` must be 'up', 'down', or None (to clear). ``comment`` is an
+    optional free-text note kept for either rating; it is dropped when the
+    rating is cleared (None).
     """
     if not CHAT_HISTORY_ENABLED:
         raise HTTPException(status_code=404, detail="Message not found")
@@ -260,5 +265,10 @@ async def set_message_feedback(
         raise HTTPException(status_code=400, detail="Feedback only applies to assistant messages")
 
     msg.feedback = body.rating
+    msg.feedback_comment = (body.comment or None) if body.rating else None
     await db.flush()
-    return {"id": str(msg.id), "feedback": msg.feedback}
+    return {
+        "id": str(msg.id),
+        "feedback": msg.feedback,
+        "feedback_comment": msg.feedback_comment,
+    }

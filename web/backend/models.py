@@ -60,7 +60,10 @@ class WebMessage(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     # User feedback on assistant messages: 'up' / 'down' / NULL. NULL on
     # user-role rows and on assistant rows the user hasn't rated.
+    # `feedback_comment` is an optional free-text note the user can attach
+    # to either rating.
     feedback: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    feedback_comment: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     conversation: Mapped["WebConversation"] = relationship(back_populates="messages")
 

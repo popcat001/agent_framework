@@ -6,7 +6,7 @@ interface ChatViewProps {
   messages: ChatMessage[];
   isStreaming: boolean;
   error: string | null;
-  onFeedback?: (dbId: string, rating: "up" | "down" | null) => void;
+  onFeedback?: (dbId: string, rating: "up" | "down" | null, comment?: string | null) => void;
 }
 
 export function ChatView({ messages, isStreaming, error, onFeedback }: ChatViewProps) {
